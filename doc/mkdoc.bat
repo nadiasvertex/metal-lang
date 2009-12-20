@@ -1,0 +1,1 @@
+c:\Python25\python.exe c:\Python25\Scripts\rst2html.py --stylesheet=doc.css tutorial.rest > tutorial.html

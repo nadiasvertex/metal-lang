@@ -1,6 +1,7 @@
 from __future__ import with_statement
 
 import expr
+import string
 import typesys
 
 ONE=0
@@ -62,14 +63,15 @@ def l_keyword(kw, s, log):
            if idx>=len(kw):
                return { "value" : lit, "loc" : loc }
                
-           c=s.peek()           
-           if (c!=None) and (c==kw[idx]):
-            lit+=s.read()
-            idx+=1
-           else:
-            # Keyword matches must be entire               
-            s.rollback()
-            return None
+           c=s.peek()
+           if c!=None:
+               if (c==kw[idx]):
+                   lit+=s.read()
+                   idx+=1
+                   continue
+           # Keyword matches must be entire               
+           s.rollback()
+           return None
                
            
     
@@ -149,6 +151,10 @@ def l_float_expr(s, log):
     "Matches any floating point expresion, returns a float leaf expression."
     d = l_float(s, log)
     return expr.newFloat(d["loc"], float(d["value"])) if d!= None else None
+def l_bool_expr(s, log):
+    "Matches true or false as a boolean value, returns a boolean expression."
+    d = any_keyword(["true", "false"], s, log)
+    return expr.newBool(d["loc"], d["value"]) if d!= None else None
    
 def l_ident(s, log):
     "Matches any valid identifier, returns the identifier name and location dictionary."
@@ -195,9 +201,9 @@ def l_string(s, log):
         return None
     
     sval=""
-    stype=0
-    c=s.read()
+    stype=0    
     with s:
+        c=s.read() # eat the opening quote
         tmp1=s.read()
         tmp2=s.peek()
         if tmp1==q and tmp2==q:

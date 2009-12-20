@@ -8,12 +8,14 @@ import typesys
 import common
 import literals
 
-def struct_def(s, log):
-    struct_kw = lambda s, log: literals.keyword("struct", s, log)        
+struct_kw = lambda s, log: literals.keyword("struct", s, log)
+struct_start_rules = [ (struct_kw, literals.ONE),
+                       (literals.l_ident, literals.ONE),
+                       (common.doc_info,  literals.ZERO_OR_ONE),
+                       (common.lcurl, literals.ONE) ]
     
-    start_rules = [ (struct_kw, literals.ONE),
-                    (common.doc_info,  literals.ZERO_OR_ONE),
-                    (common.lcurl, literals.ONE) ]
+struct_end_rules = [(common.rcurl, literals.ONE)]
     
-    end_rules = [(common.rbrack, literals.ONE)]
+def struct_def(s, log):            
+    pass
     

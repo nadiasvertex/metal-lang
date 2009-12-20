@@ -1,5 +1,6 @@
 import err
 import copy
+import string
         
 
 class Stream:
@@ -34,7 +35,11 @@ class Stream:
     def __enter__(self):
         "Enter the context manager."
         self.begin_transaction()
-        self.in_context_mgr=True       
+        self.in_context_mgr=True
+        
+        # Toss out the leading whitespace.
+        self.skip_leading_whitespace()
+               
         return self
         
     def __exit__(self, type, value, traceback):
@@ -130,6 +135,15 @@ class Stream:
     def getLoc(self):
         "Returns a location item."
         return err.location(self.streams[self.index]["filename"], self.row, self.col)
+    
+    def skip_leading_whitespace(self):
+        cont=True
+        while cont:
+            c = self.peek()
+            if (c!=None) and (c in string.whitespace):
+                self.read() # consume and throw away the whitespace characters
+            else:
+                cont=False        
         
     def peek(self):
         "Reads a single character from the stream w/o consuming it. Returns None if there is nothing left to read."
