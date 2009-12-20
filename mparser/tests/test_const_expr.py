@@ -30,6 +30,23 @@ class TestConstExpressions(unittest.TestCase):
         self.b1.addMember("local_member1", typesys.type.new("uint32_t", loc, is_const=True))        
         self.f1.setMainlineBlock(self.b1)
         self.m.addFunc(self.f1)       
+    
+    def testParseLiteralIsConstExpr(self):
+        "Try to parse a literal expression as a constant expression"
+        data="7"
+        self.s.merge(data, "const_expr_data")
+        rv = exprs.const_expr(self.s, self.log)
+        
+        self.assertNotEqual(rv, None)
+        self.assertEqual(rv.op, "lit")
+        
+        # Run the expression solver to make sure that we get what we expect
+        cs = solver.SolveConstantExpr(rv)
+        result = cs()
+        self.assertEqual(result.value, 7)
+        
+        # Verify that we know that this is a constant node.
+        self.assertTrue(rv.isConst())
         
     def testParseSimpleConstExpr(self):
         "Try to parse a simple constant expression out of the data"
@@ -108,10 +125,28 @@ class TestConstExpressions(unittest.TestCase):
         "Try to parse a constant expression that contains a constant, initialized variable."
         loc=err.location("unittest::testParseConstIdentExpr", 1, 1)                
              
+        self.assertTrue(False)
+        self.log.error(loc, "Constant variable unit test is incomplete.")
         
-   
+    def testParseConstIfExpr(self):
+        "Try to parse a constant expression that contains an value if condition else other_value."
+        loc=err.location("unittest::testParseConstIfExpr", 1, 1)                
+             
+        data='2 if true else 3'
+        self.s.merge(data, "const_if_expr_data")
+        rv = exprs.const_if_expr(self.s, self.log)
         
-    	
+        self.assertNotEqual(rv, None)
+        self.assertEqual(rv.op, "if")
+        
+        # Run the expression solver to make sure that we get what we expect
+        cs = solver.SolveConstantExpr(rv)
+        result = cs()
+        self.assertEqual(result.value, 2)
+        
+        # Verify that we know that this is a constant node.
+        self.assertTrue(rv.isConst())    
+          
     	
         
         

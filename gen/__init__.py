@@ -81,6 +81,10 @@ class Formatter:
                 output+=(self.indent_item*self.indent)+l+"\n"
                 
         return output
+       
+convert_comment_char = { "semicolon" : ";",
+		      	   	     "hash"      : "#",
+		      	   	     "colon"     : ":" }
 
 class Generator:
    def __init__(self, backend):
@@ -180,6 +184,9 @@ class Generator:
         self.outbound_are_pointers = int(self.settings.get("language", "outbound_are_pointers"))
         self.always_pointers = self.settings.get("language", "always_pointers").split(" ")
         self.depth = 0
+        
+        if self.comment in convert_comment_char:
+        	self.comment=convert_comment_char[self.comment]
         
         self.formatter.setComment(self.comment)
         

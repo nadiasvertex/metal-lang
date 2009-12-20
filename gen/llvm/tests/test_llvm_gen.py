@@ -45,9 +45,9 @@ class TestLLVMGen(unittest.TestCase):
         
     def llvm_compile(self, filename):
         if sys.platform=="win32":
-            cmd =r"c:\projects\llvm\Debug\bin\llvm-as -d -debug -f %s" % filename            
+            cmd =r"f:\projects\llvm\Debug\bin\llvm-as -d -debug -f %s" % filename            
         elif sys.platform=="linux2":
-            cmd =r"llvm-as -d -debug -f %s" % filename
+            cmd =["/usr/local/bin/llvm-as", "-d", "-debug", "-f", filename]
                         
         p = subprocess.Popen(cmd, stdin=subprocess.PIPE, 
                                        stdout=subprocess.PIPE, 

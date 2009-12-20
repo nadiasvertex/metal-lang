@@ -34,6 +34,8 @@ class SolveConstantExpr:
             return expr.newFloat(loc, result)
         elif rt == types.StringType:
             return expr.newString(loc, result)
+        elif rt == types.BooleanType:
+            return expr.newBool(loc, result)
         
         raise exceptions.TypeError, "Expected output to be an integer, float, or string."
         
@@ -48,6 +50,9 @@ class SolveConstantExpr:
             return self._exec_binop(node.loc, node.op, left, right)
         elif n_inputs==1:
             child = self._solve_node(node.child)
+        elif n_inputs==3:
+            result=self._solve_node(node.cond)
+            return node.true_value if result.value else node.false_value             
         elif n_inputs==0:
             return node        
         
@@ -64,8 +69,8 @@ class SolveConstantExpr:
         
         n_inputs = node.getNumInputs()
         if n_inputs==2:
-            left = _find_const(node.children[0])
-            right = _find_const(node.children[1])
+            left = self._find_const(node.children[0])
+            right = self._find_const(node.children[1])
             
             if not left: return right
             if not right: return left

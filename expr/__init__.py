@@ -183,15 +183,49 @@ class Index(Expr):
         self.type=self.src.getType().getIndexedType()
         
     def check(self, scope, log):
-         if self.src.getType().isIndexable():
+         src_type=self.src.getType()
+         if src_type.isIndexable():
              #TODO: Check the source type for all operator functions of this type.  Check their input parameter
              # type and see if it matches with this index type.
              pass
             
          else:
-           log.error(self.loc, "The type of the source for the index operation is '%s', which is not an indexable type." % self.src.getType().getTypeInfoName())            
+           index_type_err_msg = "The type of the source for the index operation is '{source_type}', which is not an indexable type." 
+           log.error(self.loc,  index_type_err_msg.format(source_type=src_type.getTypeInfoName()))            
         
-            
+class IfExpr(Expr):
+    "Performs the value if cond else other_value operation."
+    def __init__(self, loc, cond, true_value, false_value):
+        Expr.__init__(self, "if", loc)
+        self.cond = cond
+        self.true_value = true_value;
+        self.false_value = false_value;
+        
+    def resolveType(self):
+        "The type from the true value is the type of the expression"
+        self.type = self.true_value.getType()
+        
+    def check(self, scope, log):
+        "Check to make sure that the true and false types are compatible."
+        fv_type = self.false_value.getType()
+        tv_type = self.true_value.getType() 
+        
+        if fv_type.isPromotable(tv_type):
+            return True
+        
+        if_type_err_msg = "The false value type '{false_type}' (after the else) of the if expression is not promotable to the true value type '{true_type}'"
+        log.error(self.loc, if_type_err_msg.format(false_type=fv_type.getTypeInfoName(),
+                                                   true_type=tv_type.getTypeInfoName()))
+        
+    def getNumInputs(self):
+        "If nodes expect three inputs."
+        return 3
+    
+    def isConst(self):
+        "The if expression is constant if the condition and both values are constant"
+        return self.cond.isConst() and self.true_value.isConst() and self.false_value.isConst()
+    
+           
 class InitializerList(Leaf):
     """The initializer list expects one or more expressions for use in initializing something.  It is a leaf because it provides
     no operation on the expressions other than grouping.  An initializer list essentially becomes an anonymous type."""  
@@ -243,6 +277,13 @@ def newInt(loc, value):
 def newFloat(loc, value):
     "Constructs a new floating point leaf value."
     return LiteralLeaf(loc, value, typesys.type.new("float_t", loc, is_const=True))
+
+def newBool(loc, value):
+    "Constructs a new boolean leaf value."
+    if type(value) in types.StringTypes:
+        value=True if value=="true" else False
+        
+    return LiteralLeaf(loc, True if value else False, typesys.type.new("bool_t", loc, is_const=True))
        
      
    
