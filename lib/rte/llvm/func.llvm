@@ -1,0 +1,72 @@
+// Transform a metal function into a c function.
+
+func_definition
+${
+    define i1 @$(name) (%type.$(inbound_name) *%__inbound_args, %type.$(outbound_name) *%__outbound_args)
+$}
+
+func_declaration
+${
+    declare i1 @$(name) (%type.$(inbound_name) *%__inbound_args, %type.$(outbound_name) *%__outbound_args)
+$}
+
+func_parm
+${    
+	%$(name) = getelementptr %type.$(func_name)_t *%$(func_name)_args, i32 0, i32 $(index)
+$}
+
+func_store_parm
+${
+    $!create_label TMP
+        
+    %$(TMP) = getelementptr %type.$(func_name)_t *%$(func_name)_args, i32 0, i32 $(index)
+    store $(type) $(value), $(type) *%$(TMP)
+$}
+
+
+func_call
+${
+    $(prefix)
+    $!if (is_tail_call) 
+        tail call fastcc i1 @$(name) ($(args))
+        ret i1 %1
+    $!else
+        call fastcc i1 @$(name) ($(args)) 
+    $!endif
+$}
+
+func_call_pred
+${
+    $!create_label RV
+    $!create_label FAIL
+    $!create_label PASS
+    $!create_label END
+    
+    %$(RV) = call fastcc i1 @$(name) ($(args))    
+    br i1 %$(RV) label %$(PASS), label %$(FAIL)   
+
+$(PASS):    
+        $(on_pass)
+        br label %$(END)            
+$(FAIL):
+
+        $(on_fail)
+        br label %$(END)                
+$(END):
+    
+$}
+
+func_call_parm
+${
+   %type.$(func_name)_t * %$(func_name)_args
+$}
+
+func_pass
+${
+	br label %function_pass;
+$}
+
+func_fail
+${
+	br label %function_fail;
+$}

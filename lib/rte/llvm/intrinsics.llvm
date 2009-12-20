@@ -1,0 +1,36 @@
+mcopy 
+${
+
+  $!create_label WORK
+  
+  %$(WORK).src = inttoptr $(src_type) $(src) to i8*
+  %$(WORK).dst = inttoptr $(dst_type) $(dst) to i8*
+  
+  call void @llvm.memcpy.i32(i8* %$(WORK).dst, i8* %$(WORK).src, i32 $(len), i32 0)
+$}
+
+minit 
+${
+
+  $!create_label WORK
+    
+  %$(WORK).dst = inttoptr $(dst_type) $(dst) to i8*
+  
+  call void @llvm.memset.i32(i8* %$(WORK).dst, i8 $(value), i32 $(len), i32 0)
+$}
+
+address_of 
+${
+
+  $!create_label WORK
+    
+  ; Get the addresses
+  %$(WORK).target_addr = getelementptr $(type) $(target), i32 0
+  %$(WORK).dest_addr   = getelementptr $(word_type) $(dst), i32 0
+  
+  ; Cast the target pointer to an int.
+  %$(WORK).target_int  = ptrtoint $(type) *%$(WORK).target_addr, $(word_type)
+  
+  ; Save the value in the dest variable.
+  store $(word_type) *%$(WORK).dest_addr, %$(WORK).target_int    
+$}

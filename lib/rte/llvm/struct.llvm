@@ -1,0 +1,37 @@
+; Transform a metal struct into an LLVM struct
+
+struct
+${
+
+%type.$(name) = type $(struct_type) 
+
+$}
+
+struct_type
+${
+
+{ $(members) }
+
+$}
+
+packed_struct_type
+${
+
+ < { $(members) } >
+
+$}
+
+struct_member
+${
+  $(type) 
+$}
+
+constant_struct
+${
+@$(name) = internal constant $(initializer)
+$}
+
+global_struct
+${
+@$(name)  = weak global $(type) $(initialized_struct) 
+$}

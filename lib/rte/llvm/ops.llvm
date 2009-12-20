@@ -1,0 +1,202 @@
+# Defines a transformation between metal operations and llvm operations
+
+string.== call %rte_metal_strcmp($(left), $(right)) $(nl) $(result) = icmp eq  i8 %0, 0
+string.!= call %rte_metal_strcmp($(left), $(right)) $(nl) $(result) = icmp ne  i8 %0, 0
+string.<  call %rte_metal_strcmp($(left), $(right)) $(nl) $(result) = icmp slt i8 %0, 0
+string.>  call %rte_metal_strcmp($(left), $(right)) $(nl) $(result) = icmp sgt i8 %0, 0
+string.<= call %rte_metal_strcmp($(left), $(right)) $(nl) $(result) = icmp sle i8 %0, 0
+string.>= call %rte_metal_strcmp($(left), $(right)) $(nl) $(result) = icmp sge i8 %0, 0
+string.isnull  $(result) = icmp eq i32 $(child), 0
+string.lit     @$(leaf)
+string.id_val  %$(leaf)
+string.id_ref $(result) = select i1 true, $(type) $!prefix_label leaf % $(leaf), $(type) $!prefix_label leaf % $(leaf) ;id_ref
+string.cast    $(result) = string_cast $(old_type) $(old_value) to $(new_type)
+string.declaration %$(name) = alloca %type.metal_string_t
+
+string.init    ${
+    $(prefix)   
+    $!create_label TMP
+    
+    %$(TMP).src = bitcast $(type) $(result) to i8 *
+    %$(TMP).dst = bitcast $(type) %$(name)  to i8 * 
+    
+    call void @llvm.memcpy.i32(i8* %$(TMP).dst, i8* %$(TMP).src, i32 12, i32 0)  
+$}    
+
+string.sizeof ${
+       $!create_label TMP
+       
+       %$(TMP).ptr  = getelementptr $(type) $(child), i32 0, i32 1
+       $(result)    = load $(word_type)* %$(TMP).ptr       
+$}
+
+
+string.array ${
+	   $!create_label DO_INDEX
+	   $!create_label SKIP_INDEX
+	   $!create_label BUFFER
+	   
+	   ; create a new string
+	   $(result) = malloc %type.metal_string_t, i32 1
+	   call void @llvm.memset.i32(i8*$(result), i8 0, i32 32, i32 0)	   
+	   
+	   ; check the size
+	   getelementptr $(parent_type) *%$(parent), $(word_type) 0, $(word_type) 1
+	   load $(word_type)*, %1
+	   icmp ule $(word_type) $(element_index), %2
+	   br %2 label %$(DO_INDEX), label %$(SKIP_INDEX)
+	   
+	   $(DO_INDEX):
+	   ; create a new memory buffer to hold the string contents.
+	   %$(BUFFER) = malloc $(char_type), i32 1	
+	   
+	   ; store the buffer in the string object
+	   getelementptr %type.metal_string_t *$(result), $(word_type) 0, $(word_type) 2
+	   store $(char_type) *%$(BUFFER), $(char_type) *%1
+	   
+	   ; store the size of the buffer in the string object
+	   getelementptr %type.metal_string_t *$(result), $(word_type) 0, $(word_type) 1
+	   store $(word_type) 1, $(word_type) *%1 
+	   
+	   ; get the index of the string object, and store it in the string buffer
+	   getelementptr %type.metal_string_t) *%$(parent), $(word_type) 0, $(word_type) 2, $(word_type) $(element_index)       
+	   load $(char_type) *%1
+	   store $(char_type) %2, $(char_type) * %$(BUFFER)	   
+	   
+	   br label %$(SKIP_INDEX)
+	   
+	   $(SKIP_INDEX):	   	    
+$}
+
+string.+ ${
+    $!create_label STACK
+    $!create_label TMP
+    
+    $(result) = alloca %type.metal_string_t
+    %$(STACK)  = call i8 *@llvm.stacksave()
+    
+    %$(TMP).rv = alloca %type.rte_concatenate_string_t
+        
+    %$(TMP).passed = call fastcc i1 @rte_concatenate_string(%type.rte_concatenate_string_t *%$(TMP).rv, %type.metal_string_t *$(left), %type.metal_string_t *$(right))
+    ; someday check the result
+    
+    %$(TMP).rv.str.ptr = getelementptr %type.rte_concatenate_string_t *%$(TMP).rv, i32 0, i32 0
+            
+    %$(TMP).src = bitcast %type.metal_string_t * %$(TMP).rv.str.ptr to i8 *
+    %$(TMP).dst = bitcast %type.metal_string_t * $(result) to i8 * 
+        
+    call void @llvm.memcpy.i32(i8* %$(TMP).dst, i8* %$(TMP).src, i32 12, i32 0)   
+    call void @llvm.stackrestore(i8* %$(STACK))
+$}
+
+
+struct.isnull $(result) = icmp eq i32 $(child), 0
+
+number.*  $(result) =  mul $(left_type) $(left), $(right)
+number.+  $(result) =  add $(left_type) $(left), $(right)
+number.-  $(result) =  sub $(left_type) $(left), $(right)
+
+integer.<< $(result) =  shl $(left_type) $(left), $(right)
+integer.>> $(result) = lshr $(left_type) $(left), $(right)
+integer.&  $(result) =  and $(left_type) $(left), $(right)
+integer.|  $(result) =   or $(left_type) $(left), $(right)
+integer.^  $(result) =  xor $(left_type) $(left), $(right)
+
+signed./  $(result) = sdiv $(left_type) $(left), $(right)
+signed.%  $(result) = srem $(left_type) $(left), $(right)
+signed.!= $(result) = icmp ne  $(left_type) $(left), $(right)
+signed.== $(result) = icmp eq  $(left_type) $(left), $(right)
+signed.<= $(result) = icmp sle $(left_type) $(left), $(right)
+signed.>= $(result) = icmp sge $(left_type) $(left), $(right)
+signed.>  $(result) = icmp sgt $(left_type) $(left), $(right)
+signed.<  $(result) = icmp slt $(left_type) $(left), $(right)
+signed.cast $(result) = sext $(old_type) $(old_value) to $(new_type)
+
+unsigned./  $(result) = udiv $(left_type) $(left), $(right)
+unsigned.%  $(result) = urem $(left_type) $(left), $(right)
+unsigned.!= $(result) = icmp ne  $(left_type) $(left), $(right)
+unsigned.== $(result) = icmp eq  $(left_type) $(left), $(right)
+unsigned.<= $(result) = icmp ule $(left_type) $(left), $(right)
+unsigned.>= $(result) = icmp uge $(left_type) $(left), $(right)
+unsigned.>  $(result) = icmp ugt $(left_type) $(left), $(right)
+unsigned.<  $(result) = icmp ult $(left_type) $(left), $(right)
+unsigned.cast $(result) = zext $(old_type) $(old_value) to $(new_type)
+
+float./  $(result) = fdiv $(left_type) $(left), $(right)
+float.%  $(result) = frem $(left_type) $(left), $(right)
+float.!= $(result) = fcmp one $(left_type) $(left), $(right)
+float.== $(result) = fcmp oeq $(left_type) $(left), $(right)
+float.<= $(result) = fcmp ole $(left_type) $(left), $(right)
+float.>= $(result) = fcmp oge $(left_type) $(left), $(right)
+float.>  $(result) = fcmp ogt $(left_type) $(left), $(right)
+float.<  $(result) = fcmp olt $(left_type) $(left), $(right)
+float.cast $(result) = fpext $(old_type) $(old_value) to $(new_type)
+
+default.&& ${ 
+	$!create_label L1 
+	$!create_label L2 
+	$!create_label L3
+	$!create_label L4
+	; Run rleft side expression
+	$(left_code)
+	br i1 $(left), label %$(L1), label %$(L2)
+$(L1): ; the left condition is true, check the right
+	$(right_code)
+	br i1 $(right), label %$(L3), label %$(L2)
+$(L3): ; both conditions are true.
+	$(result) = icmp eq (true, true)
+	br %$(L4)
+$(L2): ; either condition is false, set the result to false
+	$(result) = icmp eq (true, false)
+	br %$(L4)
+$(L4): ; empty label for exit
+$}
+
+default.|| ${ 
+	$!create_label L1 
+	$!create_label L2 
+	$!create_label L3
+	$!create_label L4
+	$(left_code)
+	br i1 $(left), label %$(L3), label %$(L1)
+$(L1): ; the left condition is false, check the right
+	$(right_code)
+	br i1 $(right), label %$(L3), label %$(L2)
+$(L3): ; either condition is true.
+	$(result) = icmp eq (true, true)
+	br %$(L4)
+$(L2): ; both conditions are false, set the result to false
+	$(result) = icmp eq (true, false)
+	br %$(L4)
+$(L4): ; empty label for exit
+$}
+
+default.. ${
+    $!if (parent_is_fn_call)
+       $(result) = getelementptr $(parent_type) *%$(parent)_args, i32 0, $(word_type) $(element_index)
+    $!else
+       $(result) = getelementptr $(parent_type) *%$(parent), i32 0, $(word_type) $(element_index) 
+    $!endif
+$}
+
+default.array ${
+	   $(result) = getelementptr $(parent_type) *%$(parent), $(word_type) $(element_index)       
+$}
+
+default.paren   $(result) = select i1 true, $(type) $(child), $(type) $(child) ;paren
+default.id_ref  $(result) = load $(type)* $!prefix_label leaf % $(leaf)	   ;id_ref
+default.id_val  %$(leaf)
+default.lit     $(leaf)
+default.sizeof  $(result) = call void @llvm.sizeof($(child))
+
+default.declaration %$(name) = alloca $(type)
+default.init ${
+    $(prefix)
+    store $(type) $(result), $(type) *%$(name)     
+$}
+
+
+
+# Possibly add the unordered floating point operations
+
+

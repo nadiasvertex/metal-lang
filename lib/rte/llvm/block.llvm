@@ -1,0 +1,108 @@
+block
+${
+$!if (is_mainline) {$(nl)  
+$indent$
+$(func_init)
+$(invariant_enter)$(nl)
+$!endif
+br label %$(block_top)
+
+$dedent$
+$(block_top): ;-----------------------------------
+$indent$
+
+$!if (has_guard)
+	$!create_label LDOBLOCK
+		
+	icmp eq i1 $(guard_result), false ; check guard
+	br i1 %1, label %$(block_bottom), label %$(LDOBLOCK)
+		
+$(LDOBLOCK):
+	
+$!endif
+
+$(var_declarations)
+
+$(code)
+
+br label %$(block_bottom)
+$dedent$
+$(block_bottom):
+$indent$
+%$(block_bottom)_nop = add i1 0, 0 ; nop to keep LLVM from complaining.
+
+
+$!if (is_mainline) 
+br label %function_pass
+$dedent$
+function_pass: ; PASS ------- if we pass, first check invariants we might still fail.
+$indent$
+
+$(invariant_exit)
+
+	ret i1 true; ; if the invariants pass, we're good to go.
+
+$dedent$	
+function_fail: ;FAIL -----------------------------------------------------------------
+$indent$
+	ret i1 false;
+
+$dedent$
+} $(nl) 
+
+$!endif ;------------ end of: $(block_top) $(nl) $(nl)
+ 
+$}
+
+invariant_check
+${	
+	$(invariant_check_expr)
+	icmp eq i1 $(result), false
+	br i1 %1, label %function_fail, label %l_$(id)_invariant_pass
+	
+	l_$(id)_invariant_pass:
+$}	
+
+if_block
+${
+	$!create_label LDOBLOCK
+	$!create_label LSKIPBLOCK
+
+	;//////// Check the condition
+	$(cond)
+	;//////// End condition check
+	br i1 $(cond_result), label %$(LDOBLOCK), label %$(LSKIPBLOCK)
+	
+$(LDOBLOCK):
+
+	$(if_block_body)
+	br label %$(if_end_label)
+			
+$(LSKIPBLOCK):	
+	
+	$(else_ifs)
+
+	br label %$(if_end_label)	
+$(if_end_label):
+	
+	$(else_block_body)
+
+$}
+
+else_if_block
+${
+	$!create_label LDOBLOCK
+	$!create_label LSKIPBLOCK
+
+	; Check the condition
+	$(cond)
+	br i1 $(cond_result), label %$(LDOBLOCK), label %$(LSKIPBLOCK)
+	
+$(LDOBLOCK):
+
+	$(else_if_block_body)
+	br label %$(if_end_label)
+			
+$(LSKIPBLOCK):	
+
+$}
