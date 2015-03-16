@@ -1,0 +1,1 @@
+metal is a systems language with some unique features.  The compiler generates LLVM output, but is not finished yet.
